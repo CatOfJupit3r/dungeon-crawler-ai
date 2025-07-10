@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/index.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@dungeon-crawler-ai:web/components",
+    "utils": "@dungeon-crawler-ai:web/lib/utils",
+    "ui": "@dungeon-crawler-ai:web/components/ui",
+    "lib": "@dungeon-crawler-ai:web/lib",
+    "hooks": "@dungeon-crawler-ai:web/hooks"
+  },
+  "iconLibrary": "lucide"
+}
