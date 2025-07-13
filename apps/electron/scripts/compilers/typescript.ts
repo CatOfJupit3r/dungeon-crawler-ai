@@ -1,27 +1,26 @@
-import * as ts from 'typescript'
-import chalk from 'chalk'
-import glob from 'fast-glob'
-import path from 'path'
-import fs from 'fs-extra'
+import { codeFrameColumns } from '@babel/code-frame';
+import chalk from 'chalk';
+import glob from 'fast-glob';
+import fs from 'fs-extra';
+import path from 'path';
+import * as ts from 'typescript';
 
-import { codeFrameColumns } from '@babel/code-frame'
+import { BaseCompiler } from './base';
 
-import { BaseCompiler } from './base'
-
-const startCompilingCode = [6031, 6032]
-const errorCompilingCode = [6194, 6193]
+const startCompilingCode = [6031, 6032];
+const errorCompilingCode = [6194, 6193];
 
 export function formatDiagnostic(diagnostic: ts.Diagnostic) {
-  const originalMessage = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')
+  const originalMessage = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
 
-  let message = `${chalk.red('error')} ${chalk.gray(`TS${diagnostic.code}:`)} ${originalMessage}`
+  let message = `${chalk.red('error')} ${chalk.gray(`TS${diagnostic.code}:`)} ${originalMessage}`;
   if (diagnostic.file) {
-    const tokens = [chalk.cyan(`${diagnostic.file.fileName}`)]
+    const tokens = [chalk.cyan(`${diagnostic.file.fileName}`)];
     if (diagnostic.start) {
-      const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start)
+      const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
       const endPosition = diagnostic.length
         ? diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start + diagnostic.length)
-        : null
+        : null;
 
       const frame = codeFrameColumns(
         diagnostic.file.text,
@@ -30,28 +29,28 @@ export function formatDiagnostic(diagnostic: ts.Diagnostic) {
           end: endPosition ? { line: endPosition.line + 1, column: endPosition.character + 1 } : undefined,
         },
         { highlightCode: true },
-      )
+      );
 
-      tokens.push(chalk.yellow(`${line + 1}`), chalk.yellow(`${character + 1}`))
-      message += `\n${tokens.join(':')}\n\n${frame}\n`
+      tokens.push(chalk.yellow(`${line + 1}`), chalk.yellow(`${character + 1}`));
+      message += `\n${tokens.join(':')}\n\n${frame}\n`;
     } else {
-      message += `\n${tokens.join(':')}\n`
+      message += `\n${tokens.join(':')}\n`;
     }
   }
 
-  return message
+  return message;
 }
 
 export class TypescriptCompiler extends BaseCompiler {
-  private program: ts.WatchOfConfigFile<ts.SemanticDiagnosticsBuilderProgram> | null = null
-  private host: ts.WatchCompilerHostOfConfigFile<ts.SemanticDiagnosticsBuilderProgram> | null = null
-  private readonly diagnostics: ts.Diagnostic[] = []
+  private program: ts.WatchOfConfigFile<ts.SemanticDiagnosticsBuilderProgram> | null = null;
+  private host: ts.WatchCompilerHostOfConfigFile<ts.SemanticDiagnosticsBuilderProgram> | null = null;
+  private readonly diagnostics: ts.Diagnostic[] = [];
 
   public constructor(
     name: string,
     private readonly configPath: string,
   ) {
-    super(name)
+    super(name);
   }
 
   public async start() {
@@ -62,12 +61,12 @@ export class TypescriptCompiler extends BaseCompiler {
       ts.createSemanticDiagnosticsBuilderProgram,
       this.handleDiagnostics.bind(this),
       this.handleWatchStatusChanged.bind(this),
-    )
+    );
 
-    this.program = ts.createWatchProgram(this.host)
+    this.program = ts.createWatchProgram(this.host);
   }
   public isStarted() {
-    return !!this.program && !!this.host
+    return !!this.program && !!this.host;
   }
 
   public async run() {
@@ -75,45 +74,45 @@ export class TypescriptCompiler extends BaseCompiler {
       this.configPath,
       undefined,
       ts.sys as unknown as ts.ParseConfigFileHost,
-    )
+    );
 
     if (!parsedCmd) {
-      throw new Error("Can't parse config file")
+      throw new Error("Can't parse config file");
     }
 
-    const { options, fileNames, projectReferences } = parsedCmd
-    const createProgram = ts.createIncrementalProgram || ts.createProgram
+    const { options, fileNames, projectReferences } = parsedCmd;
+    const createProgram = ts.createIncrementalProgram || ts.createProgram;
     const program = createProgram.call(ts, {
       rootNames: fileNames,
       projectReferences,
       options,
-    })
+    });
 
-    this.emit('start')
+    this.emit('start');
 
-    const emitResult = program.emit()
-    const formattedMessages = emitResult.diagnostics.map(formatDiagnostic)
+    const emitResult = program.emit();
+    const formattedMessages = emitResult.diagnostics.map(formatDiagnostic);
 
     if (formattedMessages.length > 0) {
-      this.emit('failed', formattedMessages)
-      return false
+      this.emit('failed', formattedMessages);
+      return false;
     } else {
-      await this.replacePaths(options)
+      await this.replacePaths(options);
 
-      this.emit('success')
-      return true
+      this.emit('success');
+      return true;
     }
   }
 
   private flushDiagnostics() {
-    const diagnostics = [...this.diagnostics]
-    this.diagnostics.length = 0
+    const diagnostics = [...this.diagnostics];
+    this.diagnostics.length = 0;
 
-    return diagnostics
+    return diagnostics;
   }
 
   private handleDiagnostics(diagnostic: ts.Diagnostic) {
-    this.diagnostics.push(diagnostic)
+    this.diagnostics.push(diagnostic);
   }
   private async handleWatchStatusChanged(
     diagnostic: ts.Diagnostic,
@@ -123,85 +122,85 @@ export class TypescriptCompiler extends BaseCompiler {
   ) {
     // on start
     if (startCompilingCode.includes(diagnostic.code)) {
-      this.emit('start')
+      this.emit('start');
     }
 
     // on error
     if (errorCompilingCode.includes(diagnostic.code) && errorCount) {
-      const diagnostics = this.flushDiagnostics().map(formatDiagnostic)
-      this.emit('failed', diagnostics)
+      const diagnostics = this.flushDiagnostics().map(formatDiagnostic);
+      this.emit('failed', diagnostics);
     }
 
     // on success
     if (!errorCount && diagnostic.code === 6194) {
-      await this.replacePaths(options)
-      this.emit('success')
+      await this.replacePaths(options);
+      this.emit('success');
     }
   }
 
   private async replacePaths({ paths, outDir, baseUrl }: ts.CompilerOptions) {
     if (!paths) {
-      return
+      return;
     }
 
     if (!outDir) {
-      throw new Error('compilerOptions.outDir is not defined')
+      throw new Error('compilerOptions.outDir is not defined');
     }
 
     if (!baseUrl) {
-      throw new Error('compilerOptions.baseUrl is not defined')
+      throw new Error('compilerOptions.baseUrl is not defined');
     }
 
     const sourcePaths = await glob(['**/*.{js,jsx}', '*.{js,jsx}'], {
       cwd: outDir,
-    })
+    });
 
-    const aliasPrefixes = Object.keys(paths)
+    const aliasPrefixes = Object.keys(paths);
     const getUsedPathAlias = (path: string) => {
       for (const prefix of aliasPrefixes) {
-        const regex = new RegExp(`^${prefix.replace('*', '(.*)')}$`)
-        const match = path.match(regex)
+        const regex = new RegExp(`^${prefix.replace('*', '(.*)')}$`);
+        const match = path.match(regex);
 
         if (match) {
-          return prefix
+          return prefix;
         }
       }
-    }
+    };
 
     const replacePathAlias = (path: string, prefix: string) => {
-      const regex = new RegExp(`^${prefix.replace('*', '(.*)')}$`)
-      return path.replace(regex, paths[prefix][0].replace('*', '$1'))
-    }
+      const regex = new RegExp(`^${prefix.replace('*', '(.*)')}$`);
+      return path.replace(regex, paths[prefix][0].replace('*', '$1'));
+    };
 
     for (const sourcePath of sourcePaths) {
-      const targetPath = path.join(outDir, sourcePath)
-      const targetDirectoryPath = path.dirname(targetPath)
+      const targetPath = path.join(outDir, sourcePath);
+      const targetDirectoryPath = path.dirname(targetPath);
 
-      let sourceCode = await fs.readFile(targetPath, 'utf8')
-      const tokens = sourceCode.matchAll(/(require\("(.*?)"\)|import "(.*?)"|from "(.*?)")/g)
+      let sourceCode = await fs.readFile(targetPath, 'utf8');
+      const tokens = sourceCode.matchAll(/(require\("(.*?)"\)|import "(.*?)"|from "(.*?)")/g);
       for (const [target, , requireFrom, importFrom, from] of tokens) {
-        const fromPath = requireFrom || importFrom || from
+        const fromPath = requireFrom || importFrom || from;
         if (!fromPath) {
-          continue
+          continue;
         }
 
-        const usedPathAlias = getUsedPathAlias(fromPath)
+        const usedPathAlias = getUsedPathAlias(fromPath);
         if (!usedPathAlias) {
-          continue
+          continue;
         }
 
-        const replacedPath = replacePathAlias(fromPath, usedPathAlias)
-        const compiledSourcePath = path.join(outDir, replacedPath)
-        let relativePath = path.relative(targetDirectoryPath, compiledSourcePath)
+        const replacedPath = replacePathAlias(fromPath, usedPathAlias);
+        const compiledSourcePath = path.join(outDir, replacedPath);
+        let relativePath = path.relative(targetDirectoryPath, compiledSourcePath);
         if (!relativePath.startsWith('.')) {
-          relativePath = `./${relativePath}`
+          relativePath = `./${relativePath}`;
         }
 
-        relativePath = relativePath.replace(/\\/g, '/')
-        sourceCode = sourceCode.replace(target, target.replace(fromPath, relativePath))
+        relativePath = relativePath.replace(/\\/g, '/');
+        sourceCode = sourceCode.replace(target, target.replace(fromPath, relativePath));
       }
 
-      await fs.writeFile(targetPath, sourceCode)
+      await fs.writeFile(targetPath, sourceCode);
     }
   }
 }

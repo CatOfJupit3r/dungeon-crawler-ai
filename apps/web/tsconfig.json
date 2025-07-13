@@ -1,19 +1,15 @@
 {
-    "extends": "typescript-config/base.json",
-    "compilerOptions": {
-        "strict": true,
-        "esModuleInterop": true,
-        "jsx": "react-jsx",
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "verbatimModuleSyntax": true,
-        "skipLibCheck": true,
-        "types": ["vite/client"],
-        "rootDirs": ["."],
-        "baseUrl": ".",
-        "paths": {
-            "@dungeon-crawler-ai:web/*": ["./src/*"]
-        }
+  "extends": "typescript-config/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "target": "ESNext",
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "rootDirs": ["."],
+    "baseUrl": ".",
+    "paths": {
+      "@dungeon-crawler-ai:web/*": ["./src/*"]
     }
+  },
+  "include": ["src/**/*", "vite.config.ts"]
 }

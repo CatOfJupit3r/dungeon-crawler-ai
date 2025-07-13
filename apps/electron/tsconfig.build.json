@@ -2,7 +2,9 @@
   "extends": "typescript-config/base.json",
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "target": "ES2021",
+    "lib": ["ES2021"],
     "outDir": "./dist",
     "rootDir": "./src",
     "sourceMap": true,
@@ -10,7 +12,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

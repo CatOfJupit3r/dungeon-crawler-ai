@@ -1,0 +1,15 @@
+{
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 120,
+    "plugins": ["prettier-plugin-classnames", "prettier-plugin-classnames", "@trivago/prettier-plugin-sort-imports"],
+    "endOfLine": "crlf",
+    "importOrderSeparation": true,
+    "importOrder": [
+        "<THIRD_PARTY_MODULES>",
+        "^@dungeon-crawler-ai:[a-zA-Z](.*)$",
+        "^[./]"
+    ]
+}

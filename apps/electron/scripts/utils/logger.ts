@@ -1,36 +1,36 @@
-import chalk from 'chalk'
-import { createLogger, format, transports } from 'winston'
+import chalk from 'chalk';
+import { createLogger, format, transports } from 'winston';
 
-const { combine, timestamp, printf } = format
+const { combine, timestamp, printf } = format;
 
 const myFormat = printf(({ level, message, timestamp }) => {
-  let colorFunction: (message: string) => string
+  let colorFunction: (message: string) => string;
   switch (level) {
     case 'error':
-      level = 'errr'
-      colorFunction = chalk.red
-      break
+      level = 'errr';
+      colorFunction = chalk.red;
+      break;
 
     case 'warn':
-      colorFunction = chalk.yellow
-      break
+      colorFunction = chalk.yellow;
+      break;
 
     case 'debug':
-      level = 'dbug'
-      colorFunction = chalk.cyan
-      break
+      level = 'dbug';
+      colorFunction = chalk.cyan;
+      break;
 
     default:
-      colorFunction = chalk.green
-      break
+      colorFunction = chalk.green;
+      break;
   }
 
   const prefixTokens = [timestamp, level.padEnd(4, ' ').toUpperCase()]
-    .map(token => colorFunction(`[${token}]`))
-    .join('')
+    .map((token) => colorFunction(`[${token}]`))
+    .join('');
 
-  return `${prefixTokens} ${message}`
-})
+  return `${prefixTokens} ${message}`;
+});
 
 export const logger = createLogger({
   format: combine(
@@ -40,4 +40,4 @@ export const logger = createLogger({
     myFormat,
   ),
   transports: [new transports.Console()],
-})
+});

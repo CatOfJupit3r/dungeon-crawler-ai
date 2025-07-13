@@ -2,11 +2,13 @@
   "extends": "typescript-config/base.json",
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2021",
+    "lib": ["ES2021"],
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
     "sourceMap": true,
     "noEmit": true,
     "baseUrl": "./",
@@ -14,7 +16,11 @@
     "strictNullChecks": true,
     "noImplicitAny": false,
     "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["scripts"]
+  "include": ["scripts", "src"],
+  "exclude": ["node_modules", "dist"]
 }

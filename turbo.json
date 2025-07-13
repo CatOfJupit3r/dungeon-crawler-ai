@@ -10,12 +10,17 @@
         "lint": {
             "dependsOn": ["^lint"]
         },
-        "check-types": {
-            "dependsOn": ["^check-types"]
+        "ts": {
+            "dependsOn": ["^ts"]
         },
         "dev": {
             "cache": false,
             "persistent": true
+        },
+        "format": {
+            "cache": false,
+            "persistent": true,
+            "inputs": ["$TURBO_DEFAULT$", ".prettierrc.json", ".prettierrc"]
         }
     }
 }

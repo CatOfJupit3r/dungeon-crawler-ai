@@ -1,36 +1,61 @@
-import path from 'path'
-import fs from 'fs-extra'
+import fs from 'fs-extra';
+import path from 'path';
 
-import { logger } from './utils/logger'
+import { TypescriptCompiler } from './compilers/typescript';
+import { logger } from './utils/logger';
 
-const RENDERER_DIST = path.join(process.cwd(), '..', 'renderer', 'dist')
-const MAIN_DIST = path.join(process.cwd(), '..', 'main', 'dist')
-const MAIN_PACKAGE_JSON_PATH = path.join(process.cwd(), '..', 'main', 'package.json')
-const ELECTRON_DIST = path.join(process.cwd(), 'dist')
+const WEB_DIST = path.join(process.cwd(), '..', 'web', 'dist');
+const ELECTRON_DIST = path.join(process.cwd(), 'dist');
+const ELECTRON_PACKAGE_JSON_PATH = path.join(process.cwd(), 'package.json');
 
 async function build() {
-  logger.info('cleaning dist directory...')
-  await fs.remove(ELECTRON_DIST)
+  logger.info('cleaning dist directory...');
+  await fs.remove(ELECTRON_DIST);
 
-  // copy each dist to electron dist directory
-  logger.info('copying dist files...')
+  // Compile main process TypeScript
+  logger.info('compiling main process...');
+  const mainCompiler = new TypescriptCompiler('main', path.join(process.cwd(), 'tsconfig.build.json'));
 
-  await fs.copy(MAIN_DIST, ELECTRON_DIST)
-  await fs.copy(RENDERER_DIST, path.join(ELECTRON_DIST, 'renderer'))
+  await new Promise<void>((resolve, reject) => {
+    mainCompiler.on('success', () => {
+      logger.info('main process compiled successfully');
+      resolve();
+    });
+    mainCompiler.on('failed', (errors) => {
+      logger.error('main process compilation failed:', errors);
+      reject(new Error(`Compilation failed with ${errors.length} errors`));
+    });
+    mainCompiler.start();
+  });
 
-  // copy main package.json to electron dist directory
-  const whitelists = ['name', 'version', 'description', 'author', 'license', 'main', 'dependencies', 'devDependencies']
-  const mainPackageJson = await fs.readJson(MAIN_PACKAGE_JSON_PATH)
-  mainPackageJson.devDependencies = { electron: mainPackageJson.devDependencies.electron }
-  mainPackageJson.main = './main.js'
-
-  for (const key of Object.keys(mainPackageJson)) {
-    if (!whitelists.includes(key)) {
-      delete mainPackageJson[key]
-    }
+  // Copy web dist to electron dist directory
+  logger.info('copying web dist files...');
+  if (await fs.pathExists(WEB_DIST)) {
+    await fs.copy(WEB_DIST, path.join(ELECTRON_DIST, 'renderer'));
+  } else {
+    logger.warn('Web dist directory not found. Make sure to build the web app first.');
   }
 
-  await fs.writeJson(path.join(ELECTRON_DIST, 'package.json'), mainPackageJson, { spaces: 2 })
+  // Create package.json for distribution
+  logger.info('creating distribution package.json...');
+  const electronPackageJson = await fs.readJson(ELECTRON_PACKAGE_JSON_PATH);
+
+  const distPackageJson = {
+    name: electronPackageJson.name,
+    version: electronPackageJson.version,
+    description: electronPackageJson.description,
+    author: electronPackageJson.author,
+    license: electronPackageJson.license,
+    main: './main.js',
+    dependencies: {},
+  };
+
+  await fs.writeJson(path.join(ELECTRON_DIST, 'package.json'), distPackageJson, { spaces: 2 });
+
+  logger.info('build completed successfully');
 }
 
-build()
+build().catch((error) => {
+  logger.error('Build failed:', error);
+  process.exit(1);
+});
